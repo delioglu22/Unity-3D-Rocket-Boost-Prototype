@@ -1,24 +1,32 @@
 using System;
+using NUnit.Framework;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 public class CollisionHandler : MonoBehaviour
 {
-    [SerializeField] AudioClip crash;
-    [SerializeField] AudioClip success;
+    [SerializeField] AudioClip crashSFX;
+    [SerializeField] AudioClip successSFX;
     [SerializeField] float sceneDelay = 1f;
-    bool isControllable = true;
-
+    [SerializeField] ParticleSystem successParticles;
+    [SerializeField] ParticleSystem crashParticles;    
     AudioSource audioSource;
 
+    bool isControllable = true;
+    bool isCollidable = true;
     void Start()
     {
         audioSource = GetComponent<AudioSource>();
     }
+    void Update()
+    {
+        RespondToDebugKeys();
+    }
     void OnCollisionEnter(Collision collision)
     {
-        if(!isControllable) return;
+        if(!isControllable || !isCollidable) return;
         switch(collision.gameObject.tag)
         {
             case "Hazard":
@@ -29,8 +37,6 @@ public class CollisionHandler : MonoBehaviour
                 break;
         }
     }
-
-
     void ReloadLevel()
     {
         int currentScene = SceneManager.GetActiveScene().buildIndex;
@@ -54,7 +60,8 @@ public class CollisionHandler : MonoBehaviour
     {
         isControllable = false;
         audioSource.Stop();
-        audioSource.PlayOneShot(crash);
+        audioSource.PlayOneShot(crashSFX);
+        successParticles.Play();
         GetComponent<Movement>().enabled = false;
         Invoke("ReloadLevel", sceneDelay);
     }
@@ -62,9 +69,21 @@ public class CollisionHandler : MonoBehaviour
     {
         isControllable = false;
         audioSource.Stop();
-        audioSource.PlayOneShot(success);
+        audioSource.PlayOneShot(successSFX);
+        crashParticles.Play();
         GetComponent<Movement>().enabled = false;
         Invoke("LoadNextLevel", sceneDelay);
+    }
+    void RespondToDebugKeys()
+    {
+        if(Keyboard.current.lKey.wasPressedThisFrame)
+        {
+            LoadNextLevel();
+        }
+        if(Keyboard.current.cKey.wasPressedThisFrame)
+        {
+            isCollidable = !isCollidable;
+        }
     }
 
 }
